@@ -1,0 +1,156 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+labels:
+  template: example
+message: |-
+  The following service(s) have been created in your project: ${NAME}.
+
+  For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/nginx-ex/blob/master/README.md.
+metadata:
+  annotations:
+    description: An example Nginx HTTP server and a reverse proxy (nginx) application
+      that serves static content. For more information about using this template,
+      including OpenShift considerations, see https://github.com/sclorg/nginx-ex/blob/master/README.md.
+    iconClass: icon-nginx
+    openshift.io/display-name: Testing Example
+    tags: example
+objects:
+- apiVersion: apps.openshift.io/v1
+  kind: DeploymentConfig
+  metadata:
+    annotations:
+    labels:
+      app: ${NAME}
+    name: ${NAME}
+  spec:
+    replicas: 1
+    revisionHistoryLimit: 10
+    selector:
+      deploymentconfig: ${NAME}
+    strategy:
+      activeDeadlineSeconds: 21600
+      recreateParams:
+        post:
+          execNewPod:
+            command:
+            - /bin/bash
+            - -c
+            - curl -si mysql-db
+            containerName: ${NAME}
+          failurePolicy: Abort
+        pre:
+          execNewPod:
+            command:
+            - /bin/bash
+            - -c
+            - echo 'PRE LIFECYCLE HOOK'
+            containerName: ${NAME}
+          failurePolicy: abort
+        timeoutSeconds: 600
+      resources: {}
+      type: Recreate
+    template:
+      metadata:
+        annotations:
+        labels:
+          deploymentconfig: ${NAME}
+      spec:
+        containers:
+        - env:
+          - name: MYSQL_PASSWORD
+            value: ${PASSWORD}
+          - name: MYSQL_ROOT_PASSWORD
+            valueFrom:
+              configMapKeyRef:
+                key: ROOT_PASSWORD
+                name: mysql
+          - name: MYSQL_USER
+            valueFrom:
+              configMapKeyRef:
+                key: USER
+                name: mysql
+          - name: MYSQL_DATABASE
+            valueFrom:
+              configMapKeyRef:
+                key: DATABASE
+                name: mysql
+          image: image-registry.openshift-image-registry.svc:5000/exam/${NAME}
+          imagePullPolicy: Always
+          livenessProbe:
+            exec:
+              command:
+              - cat
+              - /opt/app-root/src/index.html
+            failureThreshold: 3
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
+          name: ${NAME}
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+          - containerPort: 8443
+            protocol: TCP
+          readinessProbe:
+            failureThreshold: 5
+            httpGet:
+              path: /
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            successThreshold: 1
+            timeoutSeconds: 2
+          resources:
+            limits:
+              cpu: 200m
+              memory: ${MEMORY_LIMIT}
+            requests:
+              cpu: 10m
+              memory: 10Mi
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+    test: false
+    triggers:
+    - type: ConfigChange
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+    labels:
+      app: ${NAME}
+    name: ${NAME}
+  spec:
+    ports:
+    - name: 8080-tcp
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+    - name: 8443-tcp
+      port: 8443
+      protocol: TCP
+      targetPort: 8443
+    selector:
+      deploymentconfig: ${NAME}
+    type: ClusterIP
+parameters:
+- description: The name assigned to all of the frontend objects defined in this template.
+  displayName: Name
+  name: NAME
+  required: true
+  value: nginx-example
+- description: Memory Limit
+  displayName: Memory Limit
+  name: MEMORY_LIMIT
+  required: true
+  value: 512Mi
+- description: DB password
+  displayName: Secret
+  from: '[a-zA-Z0-9]{40}'
+  generate: expression
+  name: SECRET
