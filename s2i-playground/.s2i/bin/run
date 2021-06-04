@@ -1,4 +1,5 @@
 #!/bin/bash
 
 echo "DOING SOME RUN CUSTOMIZATION..."
+echo "PRINT SOME VARS: MYSQL_DATABASE=${MYSQL_DATABASE}"
 exec /usr/libexec/s2i/run
