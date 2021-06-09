@@ -1,0 +1,7 @@
+#!/bin/bash
+
+set -e
+
+echo "------> Doing so custom run things..."
+
+exec /usr/libexec/s2i/run
