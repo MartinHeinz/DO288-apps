@@ -39,9 +39,7 @@ pipeline {
         stage('manual approval') {
             steps {
                 timeout(60) {
-                  input {
-                    message "Move to stage 3?"
-                  }
+                  input message: "Move to stage 3?"
                 }
             }
         }
