@@ -1,0 +1,5 @@
+#!/bin/bash -e
+
+echo ">>>>>>>> Run customization..."
+
+exec /usr/local/s2i/run

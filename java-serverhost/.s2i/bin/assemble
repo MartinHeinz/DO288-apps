@@ -1,0 +1,11 @@
+#!/bin/bash -e
+
+/usr/local/s2i/assemble
+
+rc=$?
+
+if [ $rc == 0 ]; then
+  echo ">>>>>>>>>>  Successful"
+else
+  echo ">>>>>>>>>> Fail"
+fi
